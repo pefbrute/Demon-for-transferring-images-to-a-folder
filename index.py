@@ -90,6 +90,9 @@ def create_folder_and_move_image(image_path, folder_counter):
     shutil.move(image_path, new_image_path)
     return new_image_path
 
+# Создание экземпляра GUI
+gui = TimerGUI()
+
 watched_directory = os.path.dirname(os.path.realpath(__file__))
 
 existing_files = set(os.listdir(watched_directory))
