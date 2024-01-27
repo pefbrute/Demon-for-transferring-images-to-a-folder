@@ -5,6 +5,7 @@ import time
 import subprocess
 import re
 import shlex
+import pyautogui
 
 SCALE_FACTOR = 9
 
@@ -48,10 +49,20 @@ def process_image(file_path, scale_factor=SCALE_FACTOR):
         resized_image_path = ImageProcessor.save_image(resized_image, file_path)
         converted_image_path = ImageProcessor.convert_to_jpg(resized_image_path)
         print(f"Processed {file_path}: Resized to {resized_image_path}, Converted to {converted_image_path}")
+        return converted_image_path
     except Exception as e:
         print(f"Error processing {file_path}: {e}")
+        return None
 
-watched_directory = os.path.dirname(os.path.realpath(__file__))
+def copy_image_to_clipboard(image_path):
+    command = f"xclip -selection clipboard -t image/png -i \"{image_path}\""
+    subprocess.run(command, shell=True, check=True)
+
+def open_browser_and_paste_image(image_path):
+    copy_image_to_clipboard(image_path)
+    subprocess.Popen(["vivaldi", "https://chat.openai.com/g/g-pT1I8F71Z-obsuditel-2000"])
+    time.sleep(8)
+    pyautogui.hotkey('ctrl', 'v')
 
 def find_min_missing_folder_number(path):
     existing_folders = [f for f in os.listdir(path) if os.path.isdir(os.path.join(path, f))]
@@ -77,12 +88,9 @@ def create_folder_and_move_image(image_path, folder_counter):
 
     new_image_path = os.path.join(new_folder_path, file_name)
     shutil.move(image_path, new_image_path)
-    process_image(new_image_path)
+    return new_image_path
 
-    # Создание текстового файла "Описание.txt" в папке
-    description_file_path = os.path.join(new_folder_path, "Описание.json")
-    with open(description_file_path, 'w') as description_file:
-        description_file.write("")
+watched_directory = os.path.dirname(os.path.realpath(__file__))
 
 existing_files = set(os.listdir(watched_directory))
 
@@ -91,10 +99,13 @@ while True:
     new_files = current_files - existing_files
 
     for file in new_files:
-        full_file_path = os.path.join(watched_directory, file)
         if file.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp')):
+            full_file_path = os.path.join(watched_directory, file)
             folder_counter = find_min_missing_folder_number(watched_directory)
-            create_folder_and_move_image(full_file_path, folder_counter)
+            new_image_path = create_folder_and_move_image(full_file_path, folder_counter)
+            processed_image_path = process_image(new_image_path)
+            if processed_image_path:
+                open_browser_and_paste_image(processed_image_path)
 
     existing_files = current_files
     time.sleep(5)
